@@ -2,7 +2,7 @@ package org.example;
 
 import java.time.LocalDate;
 
-class Task {
+public class Task {
     private String name;
     private String description;
     private TaskType type;
