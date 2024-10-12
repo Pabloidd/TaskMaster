@@ -9,7 +9,6 @@ public class Task {
     private int priority; // 1 - высокий, 2 - средний, 3 - низкий
     private LocalDate deadline;
     private TaskStatus status;
-    private String[] tags;
 
     public Task(String name, String description, TaskType type, int priority, LocalDate deadline) {
         this.name = name;
@@ -18,7 +17,6 @@ public class Task {
         this.priority = priority;
         this.deadline = deadline;
         this.status = TaskStatus.ACTIVE;
-        this.tags = new String[0];
     }
 
     public String getName() {
@@ -65,23 +63,14 @@ public class Task {
         this.status = status;
     }
 
-    public String[] getTags() {
-        return tags;
-    }
-
-    public void setTags(String[] tags) {
-        this.tags = tags;
-    }
-
     @Override
     public String toString() {
-        return "Задача: " + name + "\n" +
-                "Описание: " + description + "\n" +
-                "Тип: " + type + "\n" +
-                "Приоритет: " + priority + "\n" +
-                "Срок выполнения: " + deadline + "\n" +
-                "Статус: " + status + "\n" +
-                "Теги: " + (tags.length == 0 ? "Нет" : String.join(", ", tags));
+        return "Задача: " + name  +
+                "Описание: " + description  +
+                "Тип: " + type  +
+                "Приоритет: " + priority  +
+                "Срок выполнения: " + deadline  +
+                "Статус: " + status;
     }
 
     public void setType(TaskType type) {
