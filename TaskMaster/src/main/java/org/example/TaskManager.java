@@ -13,7 +13,18 @@ import java.util.Comparator;
 import java.util.List;
 import java.io.*;
 
-        public class TaskManager {
+public class TaskManager {
+
+    private static final int MAIN_FRAME_WIDTH = 1000;
+    private static final int MAIN_FRAME_HEIGHT = 800;
+    private static final int TASK_PANEL_WIDTH = 250;
+    private static final int TASK_PANEL_HEIGHT = 70;
+    private static final int CREATE_TASK_DIALOG_WIDTH = 400;
+    private static final int CREATE_TASK_DIALOG_HEIGHT = 300;
+    private static final int EDIT_TASK_DIALOG_WIDTH = 400;
+    private static final int EDIT_TASK_DIALOG_HEIGHT = 300;
+    private static final int INFO_DIALOG_WIDTH = 400;
+    private static final int INFO_DIALOG_HEIGHT = 300;
 
     private List<Task> tasks = new ArrayList<>();
     private JFrame mainFrame;
@@ -40,7 +51,7 @@ import java.io.*;
                 }
             }
         });
-        mainFrame.setSize(1000, 800);
+        mainFrame.setSize(MAIN_FRAME_WIDTH, MAIN_FRAME_HEIGHT);
 
         JPanel contentPane = new JPanel(new BorderLayout());
 
@@ -51,6 +62,7 @@ import java.io.*;
         toolBarPanel.add(createTaskButton);
 
         // Кнопка "Сохранить и выйти"
+
         JButton saveAndExitButton = new JButton(" Сохранить и выйти ");
         saveAndExitButton.addActionListener(e -> {
             saveTasksToFile();
@@ -94,10 +106,15 @@ import java.io.*;
         sortByDeadlineButton.addActionListener(e -> sortByDeadline());
         actionPanel.add(sortByDeadlineButton);
 
-        // Кнопка развернуть
-        JButton expandTaskButton = new JButton(" Развернуть ");
-        expandTaskButton.addActionListener(e -> expandTask());
-        actionPanel.add(expandTaskButton);
+        // Кнопка развернуть (убираем)
+        //JButton expandTaskButton = new JButton(" Развернуть ");
+        //expandTaskButton.addActionListener(e -> expandTask());
+        //actionPanel.add(expandTaskButton);
+
+        // Кнопка справки
+        JButton helpButton = new JButton("?");
+        helpButton.addActionListener(e -> showHelpDialog());
+        actionPanel.add(helpButton);
 
         // Собираем все элементы
         contentPane.add(toolBarPanel, BorderLayout.NORTH);
@@ -118,7 +135,7 @@ import java.io.*;
         Task selectedTask = tasks.get(selectedIndex);
 
         JFrame dialog = new JFrame("Информация о задаче");
-        dialog.setSize(400, 300);
+        dialog.setSize(INFO_DIALOG_WIDTH, INFO_DIALOG_HEIGHT);
         dialog.setLayout(new GridLayout(6, 2));
 
         JLabel nameLabel = new JLabel("Название задачи:");
@@ -152,7 +169,7 @@ import java.io.*;
 
     private void createTaskDialog() {
         JFrame dialog = new JFrame(" Создать задачу ");
-        dialog.setSize(400, 300);
+        dialog.setSize(CREATE_TASK_DIALOG_WIDTH, CREATE_TASK_DIALOG_HEIGHT);
         dialog.setLayout(new GridLayout(8, 2));
 
         JLabel nameLabel = new JLabel("Название задачи:");
@@ -227,7 +244,7 @@ import java.io.*;
         Task selectedTask = tasks.get(selectedIndex);
 
         JFrame dialog = new JFrame(" Редактировать задачу ");
-        dialog.setSize(400, 300);
+        dialog.setSize(EDIT_TASK_DIALOG_WIDTH, EDIT_TASK_DIALOG_HEIGHT);
         dialog.setLayout(new GridLayout(8, 2));
 
         JLabel nameLabel = new JLabel("Название задачи:");
@@ -339,9 +356,9 @@ import java.io.*;
 
         for (Task task : tasks) {
             JPanel taskPanel = new JPanel(new BorderLayout());
-            taskPanel.setPreferredSize(new Dimension(250, 70)); // Уменьшаем размер прямоугольника
+            taskPanel.setPreferredSize(new Dimension(TASK_PANEL_WIDTH, TASK_PANEL_HEIGHT)); // Уменьшаем размер прямоугольника
 
-            // Цвет прямоугольника в зависимости от приоритета (более бледный)
+            // Цвет прямоугольника в зависимости от приоритета (более блед ный)
             Color priorityColor = switch (task.getPriority()) {
                 case 1 -> new Color(255, 150, 150); // Более бледный красный
                 case 2 -> new Color(255, 200, 150); // Более бледный оранжевый
@@ -422,5 +439,34 @@ import java.io.*;
     private boolean confirmDelete() {
         return JOptionPane.showConfirmDialog(mainFrame, "Вы уверены, что хотите удалить задачу?", "Удаление", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION;
     }
-}
 
+    private void showHelpDialog() {
+        String helpText = "Добро пожаловать в Task Manager!\n\n" +
+                "Это приложение поможет вам организовать ваши задачи.\n\n" +
+                "**Создать задачу:**\n" +
+                "1. Нажмите кнопку \"Создать задачу\" в панели инструментов.\n" +
+                "2. Заполните поля \"Название\", \"Описание\", \"Тип\", \"Приоритет\" и \"Срок выполнения\".\n" +
+                "3. Нажмите кнопку \"Создать\".\n\n" +
+                "**Редактировать задачу:**\n" +
+                "1. Выберите задачу из списка.\n" +
+                "2. Нажмите кнопку \"Редактировать\" в панели действий.\n" +
+                "3. Измените необходимые поля.\n" +
+                "4. Нажмите кнопку \"Сохранить\".\n\n" +
+                "**Завершить задачу:**\n" +
+                "1. Выберите задачу из списка.\n" +
+                "2. Нажмите кнопку \"Завершить\" в панели действий.\n\n" +
+                "**Удалить задачу:**\n" +
+                "1. Выберите задачу из списка.\n" +
+                "2. Нажмите кнопку \"Удалить\" в панели действий.\n\n" +
+                "**Сортировать по сроку:**\n" +
+                "1. Нажмите кнопку \"Сортировать по сроку\" в панели действий.\n\n" +
+                "**Просмотр задачи:**\n" +
+                "1. Выберите задачу из списка.\n" +
+                "2. Дважды щелкните по задаче, чтобы открыть ее полную информацию.\n\n" +
+                "**Справка:**\n" +
+                "1. Нажмите кнопку \"?\" в панели действий, чтобы открыть это окно справки.\n\n" +
+                "Приятного использования!";
+
+        JOptionPane.showMessageDialog(mainFrame, helpText, "Справка", JOptionPane.INFORMATION_MESSAGE);
+    }
+}
