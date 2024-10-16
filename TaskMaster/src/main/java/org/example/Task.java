@@ -1,4 +1,4 @@
-package org.example;
+ package org.example;
 
 import java.time.LocalDate;
 
@@ -8,7 +8,6 @@ public class Task {
     private TaskType type;
     private int priority; // 1 - высокий, 2 - средний, 3 - низкий
     private LocalDate deadline;
-    private TaskStatus status;
 
     public Task(String name, String description, TaskType type, int priority, LocalDate deadline) {
         this.name = name;
@@ -16,7 +15,6 @@ public class Task {
         this.type = type;
         this.priority = priority;
         this.deadline = deadline;
-        this.status = TaskStatus.ACTIVE;
     }
 
     public String getName() {
@@ -55,25 +53,19 @@ public class Task {
         this.deadline = deadline;
     }
 
-    public TaskStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(TaskStatus status) {
-        this.status = status;
-    }
-
     @Override
     public String toString() {
         return "Задача: " + name  +
                 "Описание: " + description  +
                 "Тип: " + type  +
                 "Приоритет: " + priority  +
-                "Срок выполнения: " + deadline  +
-                "Статус: " + status;
+                "Срок выполнения: " + deadline;
     }
 
     public void setType(TaskType type) {
         this.type = type;
     }
 }
+
+
+
