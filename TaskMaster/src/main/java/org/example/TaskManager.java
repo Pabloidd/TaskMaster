@@ -1,5 +1,4 @@
-
-        package org.example;
+ package org.example;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -36,6 +35,7 @@ public class TaskManager {
     private JPanel selectedTaskPanel = null; // Панель выбранной задачи
     private TaskType filterType = null; // Фильтр по типу задачи
     private int filterPriority = 0; // Фильтр по приоритету
+    private TaskSaver taskSaver = new TaskSaver(dataFile);
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new TaskManager().createAndShowGUI());
@@ -56,7 +56,6 @@ public class TaskManager {
             }
         });
         mainFrame.setSize(MAIN_FRAME_WIDTH, MAIN_FRAME_HEIGHT);
-
         JPanel contentPane = new JPanel(new BorderLayout());
 
         // Панель инструментов
@@ -320,7 +319,8 @@ public class TaskManager {
         JLabel descriptionLabel = new JLabel("Описание:");
         JTextArea descriptionField = new JTextArea();
         descriptionField.setLineWrap(true);
-        JScrollPane descriptionScrollPane = new JScrollPane(descriptionField);
+        JScrollPane descriptionScrollPane = new
+        JScrollPane(descriptionField);
 
         JLabel typeLabel = new JLabel("Тип задачи:");
         JComboBox<TaskType> typeComboBox = new JComboBox<>(TaskType.values());
@@ -410,7 +410,6 @@ public class TaskManager {
         JLabel priorityLabel = new JLabel("Приоритет:");
         JComboBox<String> priorityComboBox = new JComboBox<>(new String[]{"ОСОБО ВАЖНЫЙ", "ВАЖНЫЙ", "ОБЫЧНЫЙ"});
         priorityComboBox.setSelectedItem(getPriorityName(task.getPriority()));
-
         JLabel deadlineLabel = new JLabel("Срок выполнения:");
         JTextField deadlineField = new JTextField(task.getDeadline() == null ? "" : task.getDeadline().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
 
@@ -487,35 +486,11 @@ public class TaskManager {
 
     // Методы для сохранения и загрузки задач из файла
     private void saveTasksToFile() {
-        try (FileWriter writer = new FileWriter(dataFile)) {
-            for (Task task : tasks) {
-                writer.write(task.getName() + "," + task.getDescription() + "," + task.getType() + "," + task.getPriority() + "," + (task.getDeadline() == null ? "" : task.getDeadline().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))) + "\n");
-            }
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(mainFrame, "Ошибка при сохранении данных.", "Ошибка", JOptionPane.ERROR_MESSAGE);
-        }
+        taskSaver.saveTasks(tasks);
     }
 
     private void loadTasksFromFile() {
-        try (BufferedReader reader = new BufferedReader(new FileReader(dataFile))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(",");
-                if (parts.length == 5) {
-                    String name = parts[0];
-                    String description = parts[1];
-                    TaskType type = TaskType.valueOf(parts[2]);
-                    int priority = Integer.parseInt(parts[3]);
-                    LocalDate deadline = parts[4].isEmpty() ? null : LocalDate.parse(parts[4], DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-                    Task task = new Task(name, description, type, priority, deadline);
-                    tasks.add(task);
-                }
-            }
-        } catch (FileNotFoundException e) {
-            // Файл не найден - это нормально, если приложение запускается впервые
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(mainFrame, "Ошибка при загрузке данных.");
-        }
+        tasks = taskSaver.loadTasks();
     }
 
     private boolean confirmSave() {
@@ -584,5 +559,47 @@ public class TaskManager {
         } else {
             return type == null ? "Все типы" : type.toString();
         }
+    }
+}
+
+class TaskSaver {
+    private String dataFile;
+
+    public TaskSaver(String dataFile) {
+        this.dataFile = dataFile;
+    }
+
+    public void saveTasks(List<Task> tasks) {
+        try (FileWriter writer = new FileWriter(dataFile)) {
+            for (Task task : tasks) {
+                writer.write(task.getName() + "," + task.getDescription() + "," + task.getType() + "," + task.getPriority() + "," + (task.getDeadline() == null ? "" : task.getDeadline().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))) + "\n");
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null, "Ошибка при сохранении данных.", "Ошибка", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    public List<Task> loadTasks() {
+        List<Task> loadedTasks = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(dataFile))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length == 5) {
+                    String name = parts[0];
+                    String description = parts[1];
+                    TaskType type = TaskType.valueOf(parts[2]);
+                    int priority = Integer.parseInt(parts[3]);
+                    LocalDate deadline = parts[4].isEmpty() ? null : LocalDate.parse(parts[4], DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                    Task task = new Task(name, description, type, priority, deadline);
+                    loadedTasks.add(task);
+                }
+            }
+        } catch (FileNotFoundException e) {
+            // Файл не найден - это нормально, если приложение запускается впервые
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null, "Ошибка при загрузке данных.");
+        }
+        return loadedTasks;
     }
 }
