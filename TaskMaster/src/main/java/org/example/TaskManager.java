@@ -1,7 +1,6 @@
  package org.example;
 
 import javax.swing.*;
-import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -19,7 +18,6 @@ public class TaskManager {
     private static final int MAIN_FRAME_HEIGHT = 800;
     private static final int TASK_PANEL_WIDTH = 200; // Фиксированная ширина блока
     private static final int TASK_PANEL_HEIGHT = 50; // Фиксированная высота блока
-    private static final int TASKS_PER_ROW = 3; // Количество блоков в ряду
     private static final int CREATE_TASK_DIALOG_WIDTH = 400;
     private static final int CREATE_TASK_DIALOG_HEIGHT = 300;
     private static final int EDIT_TASK_DIALOG_WIDTH = 400;
@@ -27,7 +25,7 @@ public class TaskManager {
     private static final int INFO_DIALOG_WIDTH = 400;
     private static final int INFO_DIALOG_HEIGHT = 300;
 
-    private List<Task> tasks = new ArrayList<>();
+    List<Task> tasks = new ArrayList<>();
     private JFrame mainFrame;
     private JPanel taskListPanel;
     private JPanel taskListContainer; // Контейнер для хранения блоков задач
@@ -36,6 +34,8 @@ public class TaskManager {
     private TaskType filterType = null; // Фильтр по типу задачи
     private int filterPriority = 0; // Фильтр по приоритету
     private TaskSaver taskSaver = new TaskSaver(dataFile);
+
+    private TaskListPanel taskListPanelInstance; // Ссылка на объект TaskListPanel
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new TaskManager().createAndShowGUI());
@@ -55,10 +55,32 @@ public class TaskManager {
                 }
             }
         });
+
         mainFrame.setSize(MAIN_FRAME_WIDTH, MAIN_FRAME_HEIGHT);
         JPanel contentPane = new JPanel(new BorderLayout());
 
         // Панель инструментов
+        JPanel toolBarPanel = createToolBarPanel();
+
+        // Панель задач
+        taskListPanelInstance = new TaskListPanel(this); // Создаем объект TaskListPanel
+        taskListPanel = taskListPanelInstance.getPanel(); // Получаем панель из объекта
+        taskListContainer = taskListPanelInstance.getTaskListContainer(); // Получаем контейнер из объекта
+        updateTaskList(); // Обновляем список задач при запуске
+
+        // Панель действий
+        JPanel actionPanel = createActionPanel();
+
+        // Собираем все элементы
+        contentPane.add(toolBarPanel, BorderLayout.NORTH);
+        contentPane.add(taskListPanel, BorderLayout.CENTER);
+        contentPane.add(actionPanel, BorderLayout.SOUTH);
+
+        mainFrame.setContentPane(contentPane);
+        mainFrame.setVisible(true);
+    }
+
+    private JPanel createToolBarPanel() {
         JPanel toolBarPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton createTaskButton = new JButton("Создать задачу");
         createTaskButton.addActionListener(e -> createTaskDialog());
@@ -101,13 +123,10 @@ public class TaskManager {
         });
         toolBarPanel.add(priorityComboBox);
 
-        // Панель задач
-        taskListPanel = new JPanel(new BorderLayout()); // Используем BorderLayout
-        taskListContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10)); // Используем FlowLayout для расположения в ряд с отступами
-        taskListPanel.add(taskListContainer, BorderLayout.CENTER); // Добавляем контейнер на панель
-        updateTaskList(); // Обновляем список задач при запуске
+        return toolBarPanel;
+    }
 
-        // Панель действий
+    private JPanel createActionPanel() {
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
         JButton expandTaskButton = new JButton("Развернуть"); // Кнопка Развернуть
@@ -141,37 +160,14 @@ public class TaskManager {
         sortByImportanceButton.addActionListener(e -> sortByImportance());
         actionPanel.add(sortByImportanceButton);
 
-        // Собираем все элементы
-        contentPane.add(toolBarPanel, BorderLayout.NORTH);
-        contentPane.add(taskListPanel, BorderLayout.CENTER);
-        contentPane.add(actionPanel, BorderLayout.SOUTH);
-
-        mainFrame.setContentPane(contentPane);
-        mainFrame.setVisible(true);
+        return actionPanel;
     }
 
     private void updateTaskList() {
-        taskListContainer.removeAll(); // Очищаем контейнер
-
-        // Фильтруем задачи по типу и приоритету
-        List<Task> filteredTasks = new ArrayList<>();
-        for (Task task : tasks) {
-            if ((filterType == null || task.getType() == filterType) &&
-                    (filterPriority == 0 || task.getPriority() == filterPriority)) {
-                filteredTasks.add(task);
-            }
-        }
-
-        for (int i = 0; i < filteredTasks.size(); i++) {
-            JPanel taskPanel = createTaskPanel(filteredTasks.get(i)); // Создаем блок задачи
-            taskListContainer.add(taskPanel); // Добавляем блок в контейнер
-        }
-
-        taskListContainer.revalidate(); // Обновляем компоновку контейнера
-        taskListContainer.repaint(); // Перерисовываем контейнер
+        taskListPanelInstance.updateTaskList(filterType, filterPriority); // Передаем фильтры в TaskListPanel
     }
 
-    private JPanel createTaskPanel(Task task) {
+    JPanel createTaskPanel(Task task) {
         JPanel taskPanel = new JPanel(new BorderLayout());
         taskPanel.setPreferredSize(new Dimension(TASK_PANEL_WIDTH, TASK_PANEL_HEIGHT));
 
@@ -410,6 +406,7 @@ public class TaskManager {
         JFrame dialog = new JFrame("Редактировать задачу");
         dialog.setSize(EDIT_TASK_DIALOG_WIDTH, EDIT_TASK_DIALOG_HEIGHT);
         dialog.setLayout(new GridLayout(8, 2));
+
         JLabel nameLabel = new JLabel("Название задачи:");
         JTextField nameField = new JTextField(task.getName());
         JLabel descriptionLabel = new JLabel("Описание:");
@@ -484,13 +481,11 @@ public class TaskManager {
                 return;
             }
 
-            // Обновляем задачу
             task.setName(name);
             task.setDescription(description);
             task.setType(type);
             task.setPriority(priority);
             task.setDeadline(deadline);
-
             updateTaskList();
             dialog.dispose();
         });
@@ -591,44 +586,3 @@ public class TaskManager {
     }
 }
 
-class TaskSaver {
-    private String dataFile;
-
-    public TaskSaver(String dataFile) {
-        this.dataFile = dataFile;
-    }
-
-    public void saveTasks(List<Task> tasks) {
-        try (FileWriter writer = new FileWriter(dataFile)) {
-            for (Task task : tasks) {
-                writer.write(task.getName() + "," + task.getDescription() + "," + task.getType() + "," + task.getPriority() + "," + (task.getDeadline() == null ? "" : task.getDeadline().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))) + "\n");
-            }
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(null, "Ошибка при сохранении данных.", "Ошибка", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    public List<Task> loadTasks() {
-        List<Task> loadedTasks = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(dataFile))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(",");
-                if (parts.length == 5) {
-                    String name = parts[0];
-                    String description = parts[1];
-                    TaskType type = TaskType.valueOf(parts[2]);
-                    int priority = Integer.parseInt(parts[3]);
-                    LocalDate deadline = parts[4].isEmpty() ? null : LocalDate.parse(parts[4], DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-                    Task task = new Task(name, description, type, priority, deadline);
-                    loadedTasks.add(task);
-                }
-            }
-        } catch (FileNotFoundException e) {
-            // Файл не найден - это нормально, если приложение запускается впервые
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(null, "Ошибка при загрузке данных.");
-        }
-        return loadedTasks;
-    }
-}
