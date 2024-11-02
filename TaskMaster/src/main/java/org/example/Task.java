@@ -65,6 +65,12 @@ public class Task {
     public void setType(TaskType type) {
         this.type = type;
     }
+    public boolean isOverdue() {
+        if (getType() != TaskType.DAILY && getDeadline() != null) {
+            return getDeadline().isBefore(LocalDate.now());
+        }
+        return false;
+    }
 }
 
 

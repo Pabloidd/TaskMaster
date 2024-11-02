@@ -181,7 +181,13 @@ public class TaskManager {
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 Graphics2D g2d = (Graphics2D) g;
-                g2d.setPaint(new GradientPaint(0, 0, getStartColorForPriority(task.getPriority()), getWidth(), 0, getEndColorForPriority(task.getPriority())));
+
+                // Устанавливаем градиент в зависимости от статуса задачи
+                if (task.isOverdue()) {
+                    g2d.setPaint(new GradientPaint(0, 0, Color.LIGHT_GRAY, getWidth(), 0, Color.LIGHT_GRAY));
+                } else {
+                    g2d.setPaint(new GradientPaint(0, 0, getStartColorForPriority(task.getPriority()), getWidth(), 0, getEndColorForPriority(task.getPriority())));
+                }
                 g2d.fillRect(0, 0, getWidth(), getHeight());
             }
         };
@@ -204,7 +210,6 @@ public class TaskManager {
                     if (selectedTaskPanel != null) {
                         selectedTaskPanel.setBorder(null);
                         // Возвращаем цвет фона предыдущей задачи
-                        // We need to update the gradientPanel inside the selectedTaskPanel
                         JPanel previousGradientPanel = (JPanel) selectedTaskPanel.getComponent(0);
                         previousGradientPanel.repaint();
                     }
@@ -216,7 +221,7 @@ public class TaskManager {
             }
         });
 
-        // Add gradientPanel to the taskPanel
+        // Добавляем gradientPanel на taskPanel
         taskPanel.add(gradientPanel, BorderLayout.CENTER);
 
         return taskPanel;
@@ -319,8 +324,7 @@ public class TaskManager {
         JLabel descriptionLabel = new JLabel("Описание:");
         JTextArea descriptionField = new JTextArea();
         descriptionField.setLineWrap(true);
-        JScrollPane descriptionScrollPane = new
-        JScrollPane(descriptionField);
+        JScrollPane descriptionScrollPane = new JScrollPane(descriptionField);
 
         JLabel typeLabel = new JLabel("Тип задачи:");
         JComboBox<TaskType> typeComboBox = new JComboBox<>(TaskType.values());
@@ -372,6 +376,17 @@ public class TaskManager {
                     JOptionPane.showMessageDialog(dialog, "Неверный формат даты. Используйте формат YYYY-MM-DD.");
                     return;
                 }
+
+                if (deadline.isBefore(LocalDate.now())) {
+                    JOptionPane.showMessageDialog(dialog, "Дата дедлайна не может быть ранее сегодняшней.");
+                    return;
+                }
+            }
+
+            // Валидация названия задачи
+            if (name.length() > 20) {
+                JOptionPane.showMessageDialog(dialog, "Название задачи не может быть длиннее 20 символов.");
+                return;
             }
 
             if (name.isEmpty() || description.isEmpty()) {
@@ -395,7 +410,6 @@ public class TaskManager {
         JFrame dialog = new JFrame("Редактировать задачу");
         dialog.setSize(EDIT_TASK_DIALOG_WIDTH, EDIT_TASK_DIALOG_HEIGHT);
         dialog.setLayout(new GridLayout(8, 2));
-
         JLabel nameLabel = new JLabel("Название задачи:");
         JTextField nameField = new JTextField(task.getName());
         JLabel descriptionLabel = new JLabel("Описание:");
@@ -452,6 +466,17 @@ public class TaskManager {
                     JOptionPane.showMessageDialog(dialog, "Неверный формат даты. Используйте формат YYYY-MM-DD.");
                     return;
                 }
+
+                if (deadline.isBefore(LocalDate.now())) {
+                    JOptionPane.showMessageDialog(dialog, "Дата дедлайна не может быть ранее сегодняшней.");
+                    return;
+                }
+            }
+
+            // Валидация названия задачи
+            if (name.length() > 20) {
+                JOptionPane.showMessageDialog(dialog, "Название задачи не может быть длиннее 20 символов.");
+                return;
             }
 
             if (name.isEmpty() || description.isEmpty()) {
@@ -459,11 +484,13 @@ public class TaskManager {
                 return;
             }
 
+            // Обновляем задачу
             task.setName(name);
             task.setDescription(description);
             task.setType(type);
             task.setPriority(priority);
             task.setDeadline(deadline);
+
             updateTaskList();
             dialog.dispose();
         });
@@ -475,12 +502,14 @@ public class TaskManager {
     }
 
     private void sortByDeadline() {
-        tasks.sort(Comparator.comparing(Task::getDeadline));
+        // Сортировка по сроку выполнения (не ежедневные задачи)
+        tasks.sort(Comparator.comparing(Task::getDeadline).thenComparing(Task::getName));
         updateTaskList();
     }
 
     private void sortByImportance() {
-        tasks.sort(Comparator.comparingInt(Task::getPriority).reversed()); // Сортировка по важности по убыванию
+        // Сортировка по важности (по убыванию)
+        tasks.sort(Comparator.comparingInt(Task::getPriority).reversed().thenComparing(Task::getName));
         updateTaskList();
     }
 
