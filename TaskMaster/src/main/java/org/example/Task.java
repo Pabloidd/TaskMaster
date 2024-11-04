@@ -1,13 +1,20 @@
- package org.example;
+package org.example;
 
 import java.time.LocalDate;
 
-public class Task {
+public abstract class Task {
     private String name;
     private String description;
     private TaskType type;
     private int priority; // 1 - высокий, 2 - средний, 3 - низкий
     private LocalDate deadline;
+
+    public Task(String name, String description, TaskType type, int priority) {
+        this.name = name;
+        this.description = description;
+        this.type = type;
+        this.priority = priority;
+    }
 
     public Task(String name, String description, TaskType type, int priority, LocalDate deadline) {
         this.name = name;
@@ -37,6 +44,10 @@ public class Task {
         return type;
     }
 
+    public void setType(TaskType type) {
+        this.type = type;
+    }
+
     public int getPriority() {
         return priority;
     }
@@ -62,16 +73,10 @@ public class Task {
                 "Срок выполнения: " + deadline;
     }
 
-    public void setType(TaskType type) {
-        this.type = type;
-    }
     public boolean isOverdue() {
-        if (getType() != TaskType.DAILY && getDeadline() != null) {
+        if (getType() != TaskType.DAILY && getType() != TaskType.WEEKLY && getType() != TaskType.MONTHLY && getDeadline() != null) {
             return getDeadline().isBefore(LocalDate.now());
         }
         return false;
     }
 }
-
-
-

@@ -1,16 +1,18 @@
  package org.example;
 
+import org.example.TaskType;
+import java.util.stream.Collectors;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.io.*;
 
 public class TaskManager {
 
@@ -58,7 +60,6 @@ public class TaskManager {
 
         mainFrame.setSize(MAIN_FRAME_WIDTH, MAIN_FRAME_HEIGHT);
         JPanel contentPane = new JPanel(new BorderLayout());
-
         // Панель инструментов
         JPanel toolBarPanel = createToolBarPanel();
 
@@ -192,7 +193,10 @@ public class TaskManager {
         gradientPanel.setOpaque(false);
 
         // Текст задачи (только название и срок)
-        String deadlineText = task.getType() == TaskType.DAILY ? "Ежедневная" : task.getDeadline().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String deadlineText = task.getType() == TaskType.DAILY ? "Ежедневная" :
+                task.getType() == TaskType.WEEKLY ? "Еженедельная" :
+                        task.getType() == TaskType.MONTHLY ? "Ежемесячная" :
+                                task.getDeadline().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         JLabel taskLabel = new JLabel("<html><center>" + task.getName() + "<br>" + deadlineText + "</center></html>");
         taskLabel.setHorizontalAlignment(SwingConstants.CENTER);
         gradientPanel.add(taskLabel);
@@ -258,7 +262,7 @@ public class TaskManager {
             JLabel priorityLabel = new JLabel("Приоритет:");
             JLabel priorityValue = new JLabel(getPriorityName(task.getPriority()));
             // Условие для вывода даты только для не ежедневных задач
-            if (task.getType() != TaskType.DAILY) {
+            if (task.getType() != TaskType.DAILY && task.getType() != TaskType.WEEKLY && task.getType() != TaskType.MONTHLY) {
                 JLabel deadlineLabel = new JLabel("Срок выполнения:");
                 JLabel deadlineValue = new JLabel(task.getDeadline().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
                 dialog.add(deadlineLabel);
@@ -351,7 +355,7 @@ public class TaskManager {
 
         typeComboBox.addActionListener(e -> {
             TaskType selectedType = (TaskType) typeComboBox.getSelectedItem();
-            if (selectedType == TaskType.DAILY) {
+            if (selectedType == TaskType.DAILY || selectedType == TaskType.WEEKLY || selectedType == TaskType.MONTHLY) {
                 deadlineField.setEnabled(false);
                 deadlineField.setText(""); // Очищаем поле
             } else {
@@ -365,7 +369,7 @@ public class TaskManager {
             TaskType type = (TaskType) typeComboBox.getSelectedItem();
             int priority = getPriorityFromName(priorityComboBox.getSelectedItem().toString());
             LocalDate deadline = null;
-            if (type != TaskType.DAILY) {
+            if (type != TaskType.DAILY && type != TaskType.WEEKLY && type != TaskType.MONTHLY) {
                 try {
                     deadline = LocalDate.parse(deadlineField.getText(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
                 } catch (DateTimeParseException ex) {
@@ -390,8 +394,16 @@ public class TaskManager {
                 return;
             }
 
-            Task newTask = new Task(name, description, type, priority, deadline);
-            tasks.add(newTask);
+            if (type == TaskType.DAILY) {
+                tasks.add(new DailyTask(name, description, type, priority));
+            } else if (type == TaskType.WEEKLY) {
+                tasks.add(new WeeklyTask(name, description, type, priority));
+            } else if (type == TaskType.MONTHLY) {
+                tasks.add(new MonthlyTask(name, description, type, priority));
+            } else { // type == TaskType.SINGLE
+                tasks.add(new SingleTask(name, description, type, priority, deadline));
+            }
+
             updateTaskList();
             dialog.dispose();
         });
@@ -442,7 +454,7 @@ public class TaskManager {
 
         typeComboBox.addActionListener(e -> {
             TaskType selectedType = (TaskType) typeComboBox.getSelectedItem();
-            if (selectedType == TaskType.DAILY) {
+            if (selectedType == TaskType.DAILY || selectedType == TaskType.WEEKLY || selectedType == TaskType.MONTHLY) {
                 deadlineField.setEnabled(false);
                 deadlineField.setText(""); // Очищаем поле
             } else {
@@ -456,7 +468,7 @@ public class TaskManager {
             TaskType type = (TaskType) typeComboBox.getSelectedItem();
             int priority = getPriorityFromName(priorityComboBox.getSelectedItem().toString());
             LocalDate deadline = null;
-            if (type != TaskType.DAILY) {
+            if (type != TaskType.DAILY && type != TaskType.WEEKLY && type != TaskType.MONTHLY) {
                 try {
                     deadline = LocalDate.parse(deadlineField.getText(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
                 } catch (DateTimeParseException ex) {
@@ -481,11 +493,18 @@ public class TaskManager {
                 return;
             }
 
-            task.setName(name);
-            task.setDescription(description);
-            task.setType(type);
-            task.setPriority(priority);
-            task.setDeadline(deadline);
+            int index = tasks.indexOf(task);
+            if (index != -1) {
+                if (type == TaskType.DAILY) {
+                    tasks.set(index, new DailyTask(name, description, type, priority));
+                } else if (type == TaskType.WEEKLY) {
+                    tasks.set(index, new WeeklyTask(name, description, type, priority));
+                } else if (type == TaskType.MONTHLY) {
+                    tasks.set(index, new MonthlyTask(name, description, type, priority));
+                } else { // type == TaskType.SINGLE
+                    tasks.set(index, new SingleTask(name, description, type, priority, deadline));
+                }
+            }
             updateTaskList();
             dialog.dispose();
         });
@@ -498,7 +517,14 @@ public class TaskManager {
 
     private void sortByDeadline() {
         // Сортировка по сроку выполнения (не ежедневные задачи)
-        tasks.sort(Comparator.comparing(Task::getDeadline).thenComparing(Task::getName));
+        tasks.sort(Comparator.comparing(Task::getDeadline)
+                .thenComparing(Task::getName)); // Сортировка по дате дедлайна, а затем по имени, если даты совпадают
+
+        // Фильтруем задачи с ненулевым дедлайном
+        tasks = tasks.stream()
+                .filter(task -> task.getDeadline() != null)
+                .collect(Collectors.toList());
+
         updateTaskList();
     }
 
@@ -585,4 +611,3 @@ public class TaskManager {
         }
     }
 }
-
