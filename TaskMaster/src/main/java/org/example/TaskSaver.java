@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TaskSaver {
+    private static final String DATE_FORMAT = "yyyy-MM-dd";
     private String dataFile;
 
     public TaskSaver(String dataFile) {
@@ -18,7 +19,7 @@ public class TaskSaver {
             for (Task task : tasks) {
                 String taskString = task.getName() + "," + task.getDescription() + "," + task.getType() + "," + task.getPriority();
                 if (task.getDeadline() != null) {
-                    taskString += "," + task.getDeadline().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                    taskString += "," + task.getDeadline().format(DateTimeFormatter.ofPattern(DATE_FORMAT));
                 }
                 writer.println(taskString);
             }
@@ -40,7 +41,7 @@ public class TaskSaver {
                 int priority = Integer.parseInt(parts[3]);
                 LocalDate deadline = null;
                 if (parts.length > 4) {
-                    deadline = LocalDate.parse(parts[4], DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                    deadline = LocalDate.parse(parts[4], DateTimeFormatter.ofPattern(DATE_FORMAT));
                 }
                 if (type == TaskType.DAILY) {
                     loadedTasks.add(new DailyTask(name, description, type, priority));

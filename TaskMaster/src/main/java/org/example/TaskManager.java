@@ -1,4 +1,4 @@
- package org.example;
+package org.example;
 
 import org.example.TaskType;
 import java.util.stream.Collectors;
@@ -16,26 +16,27 @@ import java.util.List;
 
 public class TaskManager {
 
-    private static final int MAIN_FRAME_WIDTH = 1000;
-    private static final int MAIN_FRAME_HEIGHT = 800;
-    private static final int TASK_PANEL_WIDTH = 200; // Фиксированная ширина блока
-    private static final int TASK_PANEL_HEIGHT = 50; // Фиксированная высота блока
-    private static final int CREATE_TASK_DIALOG_WIDTH = 400;
     private static final int CREATE_TASK_DIALOG_HEIGHT = 300;
-    private static final int EDIT_TASK_DIALOG_WIDTH = 400;
+    private static final int CREATE_TASK_DIALOG_WIDTH = 400;
     private static final int EDIT_TASK_DIALOG_HEIGHT = 300;
-    private static final int INFO_DIALOG_WIDTH = 400;
+    private static final int EDIT_TASK_DIALOG_WIDTH = 400;
     private static final int INFO_DIALOG_HEIGHT = 300;
+    private static final int INFO_DIALOG_WIDTH = 400;
+    private static final int MAIN_FRAME_HEIGHT = 800;
+    private static final int MAIN_FRAME_WIDTH = 1000;
+    private static final int TASK_PANEL_HEIGHT = 50;
+    private static final int TASK_PANEL_WIDTH = 200;
+    private static final String DATE_FORMAT = "yyyy-MM-dd";
+    private static final String FILE_NAME = "tasks.csv"; // файл для сохранения задач
 
     List<Task> tasks = new ArrayList<>();
     private JFrame mainFrame;
     private JPanel taskListPanel;
     private JPanel taskListContainer; // Контейнер для хранения блоков задач
-    private String dataFile = "tasks.csv"; // файл для сохранения задач
     private JPanel selectedTaskPanel = null; // Панель выбранной задачи
     private TaskType filterType = null; // Фильтр по типу задачи
     private int filterPriority = 0; // Фильтр по приоритету
-    private TaskSaver taskSaver = new TaskSaver(dataFile);
+    private TaskSaver taskSaver = new TaskSaver(FILE_NAME);
 
     private TaskListPanel taskListPanelInstance; // Ссылка на объект TaskListPanel
 
@@ -196,7 +197,7 @@ public class TaskManager {
         String deadlineText = task.getType() == TaskType.DAILY ? "Ежедневная" :
                 task.getType() == TaskType.WEEKLY ? "Еженедельная" :
                         task.getType() == TaskType.MONTHLY ? "Ежемесячная" :
-                                task.getDeadline().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                                task.getDeadline().format(DateTimeFormatter.ofPattern(DATE_FORMAT));
         JLabel taskLabel = new JLabel("<html><center>" + task.getName() + "<br>" + deadlineText + "</center></html>");
         taskLabel.setHorizontalAlignment(SwingConstants.CENTER);
         gradientPanel.add(taskLabel);
@@ -264,7 +265,7 @@ public class TaskManager {
             // Условие для вывода даты только для не ежедневных задач
             if (task.getType() != TaskType.DAILY && task.getType() != TaskType.WEEKLY && task.getType() != TaskType.MONTHLY) {
                 JLabel deadlineLabel = new JLabel("Срок выполнения:");
-                JLabel deadlineValue = new JLabel(task.getDeadline().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+                JLabel deadlineValue = new JLabel(task.getDeadline().format(DateTimeFormatter.ofPattern(DATE_FORMAT)));
                 dialog.add(deadlineLabel);
                 dialog.add(deadlineValue);
             }
@@ -371,7 +372,7 @@ public class TaskManager {
             LocalDate deadline = null;
             if (type != TaskType.DAILY && type != TaskType.WEEKLY && type != TaskType.MONTHLY) {
                 try {
-                    deadline = LocalDate.parse(deadlineField.getText(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                    deadline = LocalDate.parse(deadlineField.getText(), DateTimeFormatter.ofPattern(DATE_FORMAT));
                 } catch (DateTimeParseException ex) {
                     JOptionPane.showMessageDialog(dialog, "Неверный формат даты. Используйте формат YYYY-MM-DD.");
                     return;
@@ -434,7 +435,7 @@ public class TaskManager {
         JComboBox<String> priorityComboBox = new JComboBox<>(new String[]{"ОСОБО ВАЖНЫЙ", "ВАЖНЫЙ", "ОБЫЧНЫЙ"});
         priorityComboBox.setSelectedItem(getPriorityName(task.getPriority()));
         JLabel deadlineLabel = new JLabel("Срок выполнения:");
-        JTextField deadlineField = new JTextField(task.getDeadline() == null ? "" : task.getDeadline().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+        JTextField deadlineField = new JTextField(task.getDeadline() == null ? "" : task.getDeadline().format(DateTimeFormatter.ofPattern(DATE_FORMAT)));
 
         JButton saveButton = new JButton("Сохранить");
         JButton cancelButton = new JButton("Отмена");
@@ -470,7 +471,7 @@ public class TaskManager {
             LocalDate deadline = null;
             if (type != TaskType.DAILY && type != TaskType.WEEKLY && type != TaskType.MONTHLY) {
                 try {
-                    deadline = LocalDate.parse(deadlineField.getText(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                    deadline = LocalDate.parse(deadlineField.getText(), DateTimeFormatter.ofPattern(DATE_FORMAT));
                 } catch (DateTimeParseException ex) {
                     JOptionPane.showMessageDialog(dialog, "Неверный формат даты. Используйте формат YYYY-MM-DD.");
                     return;
@@ -517,20 +518,17 @@ public class TaskManager {
 
     private void sortByDeadline() {
         // Сортировка по сроку выполнения (не ежедневные задачи)
-        tasks.sort(Comparator.comparing(Task::getDeadline)
-                .thenComparing(Task::getName)); // Сортировка по дате дедлайна, а затем по имени, если даты совпадают
-
-        // Фильтруем задачи с ненулевым дедлайном
-        tasks = tasks.stream()
-                .filter(task -> task.getDeadline() != null)
-                .collect(Collectors.toList());
+        tasks.sort(Comparator.comparing(Task::getType, Comparator.comparingInt(TaskType::ordinal))
+                .thenComparing(task -> task.getDeadline() != null ? task.getDeadline() : LocalDate.MAX)
+                .thenComparing(Task::getName).reversed()); // Сортировка по имени в обратном порядке
 
         updateTaskList();
     }
 
+
     private void sortByImportance() {
         // Сортировка по важности (по убыванию)
-        tasks.sort(Comparator.comparingInt(Task::getPriority).reversed().thenComparing(Task::getName));
+        tasks.sort(Comparator.comparingInt(Task::getPriority).thenComparing(Task::getName)); // Сортируем в обратном порядке
         updateTaskList();
     }
 
@@ -577,7 +575,7 @@ public class TaskManager {
                 "1. Выберите задачу из списка.\n" +
                 "2. Дважды щелкните по задаче, чтобы открыть ее полную информацию.\n" +
                 "3. Нажмите кнопку \"Развернуть\" в панели действий, чтобы открыть информацию о выбранной задаче.\n\n" +
-                "**Справка:**\n" +
+        "**Справка:**\n" +
                 "1. Нажмите кнопку \"?\" в панели действий, чтобы открыть это окно справки.\n\n" +
                 "Приятного использования!";
 
